@@ -25,10 +25,7 @@ ALLOWED_VALUE_TYPES = (
 
 def load_model() -> Llama:
     vram_gb = cuda_available()
-    if vram_gb > 0:
-        n_gpu_layers = estimate_n_gpu_layers(vram_gb)
-    else:
-        n_gpu_layers = 0
+    n_gpu_layers = estimate_n_gpu_layers(vram_gb)
     return Llama(
         model_path="unsloth.Q5_K_M.gguf",
         use_mmap=False,
