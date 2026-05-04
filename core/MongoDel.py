@@ -1,28 +1,23 @@
 import json
 from pymongo.errors import PyMongoError
+from core.MongoDB import get_collection
 
-from core.mongodb import get_collection
-
-
-def add_user(
+def delete_document(
     client,
     database_name: str,
     collection_name: str,
-    user: dict
+    filter_query: dict
 ) -> None:
-    if not user:
-        print("Empty user was not added")
+    if not filter_query:
+        print("Empty filter is not allowed for delete")
         return
-
     collection = get_collection(client, database_name, collection_name)
-
     try:
-        result = collection.insert_one(user)
-
-        print("User added:")
+        result = collection.delete_one(filter_query)
+        print("Document delete result:")
         print(json.dumps({
-            "inserted_id": str(result.inserted_id),
-            "user": user
+            "filter": filter_query,
+            "deleted_count": result.deleted_count
         }, indent=2, ensure_ascii=False, default=str))
 
     except PyMongoError as error:

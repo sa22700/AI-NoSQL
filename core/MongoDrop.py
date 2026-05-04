@@ -1,8 +1,6 @@
 import json
 from pymongo.errors import PyMongoError
-
-from core.mongodb import get_collection
-
+from core.MongoDB import get_collection
 
 def drop_collection(
     client,

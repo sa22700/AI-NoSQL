@@ -3,7 +3,7 @@ import pymongo
 from pymongo.errors import PyMongoError
 
 def create_client():
-    return pymongo.MongoClient("mongodb://localhost:27017/")
+    return pymongo.MongoClient("mongodb://192.168.68.109:27017/")
 
 def get_collection(client, database_name: str, collection_name: str):
     db = client[database_name]

@@ -1,15 +1,16 @@
 import json
-from core.mongodb import (
+from core.MongoDB import (
     create_client,
     get_collection,
     add_document,
     get_known_fields,
     execute_query
 )
-from core.mongomodel import load_model, create_mongo_query
-from core.mongouser import add_user
-from core.mongodel import delete_document, drop_collection
-from core.mongoupd import update_document
+from core.MongoModel import load_model, create_mongo_query
+from core.MongoUser import add_user
+from core.MongoDel import delete_document
+from core.MongoDrop import drop_collection
+from core.MongoUpd import update_document
 
 def create_document_from_input() -> dict:
     document = {}
