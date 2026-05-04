@@ -4,7 +4,9 @@ from core.MongoDB import (
     get_collection,
     add_document,
     get_known_fields,
-    execute_query
+    execute_query,
+    list_databases,
+    list_collections
 )
 from core.MongoModel import load_model, create_mongo_query
 from core.MongoUser import add_user
@@ -41,6 +43,9 @@ def ask_database(llm, collection, collection_name: str) -> None:
         print("Generated query:")
         print(json.dumps(query, indent=2, ensure_ascii=False))
         print("Result:")
+        if query is None:
+            print("Query was not executed because model output was invalid")
+            return
         execute_query(collection, query)
 
     except json.JSONDecodeError:
@@ -51,7 +56,9 @@ def ask_database(llm, collection, collection_name: str) -> None:
 
 def main() -> None:
     client = create_client()
+    print(list_databases(client))
     database_name = input("Create/select database: ")
+    print(list_collections(client, database_name))
     collection_name = input("Create/select collection: ")
     collection = get_collection(
         client=client,

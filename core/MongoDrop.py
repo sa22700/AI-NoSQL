@@ -8,16 +8,12 @@ def drop_collection(
     collection_name: str
 ) -> None:
     confirm = input(f"Type DROP to delete collection '{collection_name}': ")
-
     if confirm != "DROP":
         print("Drop cancelled")
         return
-
     collection = get_collection(client, database_name, collection_name)
-
     try:
         collection.drop()
-
         print("Collection dropped:")
         print(json.dumps({
             "database": database_name,

@@ -9,6 +9,16 @@ def get_collection(client, database_name: str, collection_name: str):
     db = client[database_name]
     return db[collection_name]
 
+def list_databases(client) -> list[str]:
+    system_databases = {"admin", "config", "local"}
+    return [database_name
+            for database_name in client.list_database_names()
+            if database_name not in system_databases]
+
+def list_collections(client, database_name: str) -> list[str]:
+    db = client[database_name]
+    return db.list_collection_names()
+
 def add_document(collection, document: dict) -> None:
     if not document:
         print("Empty document was not added")
@@ -43,7 +53,7 @@ def execute_query(collection, query: dict) -> None:
     projection = query.get("projection", {})
     try:
         if operation == "find":
-            results = collection.find(filter_query, projection).limit(20)
+            results = collection.find(filter_query, projection)
             found = False
             for document in results:
                 found = True

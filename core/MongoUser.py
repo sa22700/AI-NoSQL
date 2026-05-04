@@ -2,7 +2,6 @@ import json
 from pymongo.errors import PyMongoError
 from core.MongoDB import get_collection
 
-
 def add_user(
     client,
     database_name: str,
@@ -12,12 +11,9 @@ def add_user(
     if not user:
         print("Empty user was not added")
         return
-
     collection = get_collection(client, database_name, collection_name)
-
     try:
         result = collection.insert_one(user)
-
         print("User added:")
         print(json.dumps({
             "inserted_id": str(result.inserted_id),
