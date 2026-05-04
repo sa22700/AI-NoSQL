@@ -1,6 +1,7 @@
 import json
 from llama_cpp import Llama
 from ModelSet import clean_ai_response, validate_query
+from Connect import cuda_available, estimate_n_gpu_layers
 
 READ_ONLY_MODE = True
 ALLOWED_OPERATIONS = {
@@ -23,9 +24,15 @@ ALLOWED_VALUE_TYPES = (
 )
 
 def load_model() -> Llama:
+    vram_gb = cuda_available()
+    if vram_gb > 0:
+        n_gpu_layers = estimate_n_gpu_layers(vram_gb)
+    else:
+        n_gpu_layers = 0
     return Llama(
         model_path="unsloth.Q5_K_M.gguf",
         use_mmap=False,
+        n_gpu_layers=n_gpu_layers,
         n_ctx=4096,
         verbose=False
     )
