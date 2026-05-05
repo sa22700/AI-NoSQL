@@ -1,58 +1,21 @@
-import json
 from core.MongoDB import (
     create_client,
     get_collection,
     add_document,
     get_known_fields,
-    execute_query,
     list_databases,
     list_collections
 )
-from core.MongoModel import load_model, create_mongo_query
+from core.SubProcess import (
+    create_document_from_input,
+    select_document_filter,
+    ask_database
+)
+from core.MongoModel import load_model
 from core.MongoUser import add_user
 from core.MongoDel import delete_document
 from core.MongoDrop import drop_collection
 from core.MongoUpd import update_document
-
-def create_document_from_input() -> dict:
-    document = {}
-    while True:
-        field_name = input("Field name: ")
-        if field_name == "":
-            break
-        if field_name.startswith("$"):
-            print("Field name cannot start with $")
-            continue
-        value = input("Value: ")
-        document[field_name] = value
-    return document
-
-def ask_database(llm, collection, collection_name: str) -> None:
-    known_fields = get_known_fields(collection)
-    if not known_fields:
-        print("Collection has no known fields yet. Add at least one document first.")
-        return
-    question = input("Question: ")
-    try:
-        query = create_mongo_query(
-            llm=llm,
-            question=question,
-            collection_name=collection_name,
-            known_fields=known_fields
-        )
-        print("Generated query:")
-        print(json.dumps(query, indent=2, ensure_ascii=False))
-        print("Result:")
-        if query is None:
-            print("Query was not executed because model output was invalid")
-            return
-        execute_query(collection, query)
-
-    except json.JSONDecodeError:
-        print("Model did not return valid JSON")
-
-    except ValueError as error:
-        print(f"Rejected query: {error}")
 
 def main() -> None:
     client = create_client()
@@ -91,16 +54,32 @@ def main() -> None:
             add_user(client, database_name, collection_name, user)
         elif choice == "5":
             print("Delete filter:")
-            filtered = create_document_from_input()
-            delete_document(client, database_name, collection_name, filtered)
+            filtered = select_document_filter(collection)
+            if filtered is not None:
+                delete_document(client, database_name, collection_name, filtered)
         elif choice == "6":
             drop_collection(client, database_name, collection_name)
+            collections = list_collections(client, database_name)
+            print(collections)
+            collection_name = input("Create/select collection: ").strip()
+            if not collection_name:
+                print("Collection name cannot be empty")
+                continue
+            collection = get_collection(
+                client=client,
+                database_name=database_name,
+                collection_name=collection_name
+            )
         elif choice == "7":
-            print("Update filter:")
-            filtered = create_document_from_input()
+            filtered = select_document_filter(collection)
+            if filtered is None:
+                continue
             print("Update fields:")
             update = create_document_from_input()
-            update_document(client, database_name, collection_name, filtered, update)
+            if update:
+                update_document(client, database_name, collection_name, filtered, update)
+            else:
+                print("Empty update was not executed")
         elif choice == "0":
             break
         else:

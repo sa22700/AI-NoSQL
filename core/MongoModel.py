@@ -1,4 +1,5 @@
 import json
+import os
 from llama_cpp import Llama
 from core.ModelSet import clean_ai_response, validate_query
 from core.Connect import cuda_available, estimate_n_gpu_layers
@@ -15,36 +16,46 @@ def load_model() -> Llama:
     )
 
 def build_prompt(collection_name: str, known_fields: list[str]) -> str:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    PROMPT_PATH = os.path.join(BASE_DIR, "prompt", "mongo_prompt.txt")
     fields_text = ", ".join(known_fields) if known_fields else "unknown"
+    with open (PROMPT_PATH, "r", encoding="utf-8") as file:
+        temp = file.read()
     return (
-        "You are a MongoDB query JSON generator.\n"
-        "Convert the user's question into one read-only MongoDB query.\n"
-        "Return only one valid JSON object. No markdown. No explanations.\n"
-        "\n"
-        "Allowed operations: find, count_documents.\n"
-        "Forbidden operations: insert, update, delete, drop, aggregate.\n"
-        "Forbidden keys: any key starting with $.\n"
-        "\n"
-        "Rules:\n"
-        "- Use only exact value matching.\n"
-        "- Use only known fields.\n"
-        "- Words like show, list and find are commands, not field values.\n"
-        "- If the user asks to show all, return all documents.\n"
-        "- If the user writes only a known field name, return that field using projection.\n"
-        "- If the user asks how many documents there are, use count_documents.\n"
-        "- If unsure, return all documents using find.\n"
-        "\n"
-        f"Current collection: {collection_name}\n"
-        f"Known fields: {fields_text}\n"
-        "\n"
-        "Output formats:\n"
-        '{"operation":"find",'
-        '"filter":{},'
-        '"projection":{}}\n'
-        '{"operation":"count_documents",'
-        '"filter":{}}\n'
-        "\n"
+        temp.replace("{{COLLECTION_NAME}}", collection_name)
+        .replace("{{KNOWN_FIELDS}}", fields_text)
     )
+
+def parse_model_query(raw_output: str, known_fields: list[str]) -> dict | None:
+    decoder = json.JSONDecoder()
+    position = 0
+    valid_queries = []
+
+    while position < len(raw_output):
+        while position < len(raw_output) and raw_output[position].isspace():
+            position += 1
+
+        if position >= len(raw_output):
+            break
+
+        try:
+            parsed, next_position = decoder.raw_decode(raw_output, position)
+            position = next_position
+
+            if isinstance(parsed, dict):
+                try:
+                    validated = validate_query(parsed, known_fields)
+                    valid_queries.append(validated)
+                except ValueError:
+                    pass
+
+        except json.JSONDecodeError:
+            position += 1
+
+    if not valid_queries:
+        return None
+
+    return valid_queries[-1]
 
 def create_mongo_query(
     llm: Llama,
@@ -68,8 +79,12 @@ def create_mongo_query(
     raw_output = output["choices"][0]["text"].strip()
     raw_output = clean_ai_response(raw_output)
     try:
-        query = json.loads(raw_output)
-        return validate_query(query, known_fields)
+        query = parse_model_query(raw_output, known_fields)
+        if query is None:
+            print("Model did not return valid query JSON")
+            print(f"Raw model output: {repr(raw_output)}")
+            return None
+        return query
 
     except json.JSONDecodeError:
         print("Model did not return valid JSON")
