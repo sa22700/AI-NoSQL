@@ -1,6 +1,8 @@
 import json
 import pymongo
 from pymongo.errors import PyMongoError
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
 
 def create_client() -> pymongo.MongoClient:
     return pymongo.MongoClient("mongodb://192.168.68.109:27017/")
@@ -64,6 +66,27 @@ def document_contains_value(document: dict, wanted_value: str) -> bool:
         elif str(value) == wanted_value:
             return True
     return False
+
+def check_user(client, database_name: str, username: str, password: str) -> bool:
+    collection = get_collection(client, database_name, "users")
+    if not username or not password:
+        return False
+    db_user = collection.find_one({"username": username})
+    if db_user is None:
+        return False
+    password_hash = db_user.get("password")
+    if not password_hash:
+        return False
+    ph = PasswordHasher()
+    try:
+        return ph.verify(password_hash, password)
+
+    except (VerifyMismatchError, VerificationError, InvalidHashError):
+        return False
+
+def get_users(client, database_name: str) -> list[dict]:
+    collection = get_collection(client, database_name, "users")
+    return list(collection.find({}, {"password": 0}))
 
 def execute_query(collection, query: dict) -> None:
     operation = query.get("operation")

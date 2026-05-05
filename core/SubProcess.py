@@ -1,19 +1,47 @@
 import json
 from core.MongoDB import get_known_fields, execute_query
 from core.MongoModel import create_mongo_query
+from argon2 import PasswordHasher
+from getpass import getpass
 
 def create_document_from_input() -> dict:
     document = {}
     while True:
-        field_name = input("Field name: ")
+        field_name = input("Field name: ").strip()
         if field_name == "":
             break
         if field_name.startswith("$"):
             print("Field name cannot start with $")
             continue
-        value = input("Value: ")
+        value = input("Value: ").strip()
         document[field_name] = value
     return document
+
+def create_user_from_input() -> dict | None:
+    ph = PasswordHasher()
+    username = input("Username: ").strip()
+    if not username:
+        print("Username cannot be empty")
+        return None
+    if username.startswith("$"):
+        print("Username cannot start with $")
+        return None
+    pass_check = getpass("Password: ").strip()
+    if not pass_check:
+        print("Password cannot be empty")
+        return None
+    passwd = getpass("Confirm Password: ").strip()
+    if not passwd:
+        print("Password cannot be empty")
+        return None
+    if passwd != pass_check:
+        print("Passwords do not match")
+        return None
+    password_hash = ph.hash(passwd)
+    return {
+        "username": username,
+        "password": password_hash
+    }
 
 def select_document_filter(collection) -> dict | None:
     documents = list(collection.find({}))
@@ -41,7 +69,7 @@ def ask_database(llm, collection, collection_name: str) -> None:
     if not known_fields:
         print("Collection has no known fields yet. Add at least one document first.")
         return
-    question = input("Question: ")
+    question = input("Question: ").strip()
     try:
         query = create_mongo_query(
             llm=llm,
