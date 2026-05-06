@@ -1,25 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
 import json
-import pymongo
 from pymongo.errors import PyMongoError
-from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
-
-def create_client() -> pymongo.MongoClient:
-    return pymongo.MongoClient("mongodb://192.168.68.109:27017/")
-
-def get_collection(client, database_name: str, collection_name: str) -> pymongo.collection.Collection:
-    db = client[database_name]
-    return db[collection_name]
-
-def list_databases(client) -> list[str]:
-    system_databases = {"admin", "config", "local"}
-    return [database_name
-            for database_name in client.list_database_names()
-            if database_name not in system_databases]
-
-def list_collections(client, database_name: str) -> list[str]:
-    db = client[database_name]
-    return db.list_collection_names()
+from core.Database import get_collection
 
 def add_document(collection, document: dict) -> None:
     if not document:
@@ -31,6 +15,78 @@ def add_document(collection, document: dict) -> None:
         print(json.dumps({
             "inserted_id": str(result.inserted_id),
             "document": document
+        }, indent=2, ensure_ascii=False, default=str))
+
+    except PyMongoError as error:
+        print(f"MongoDB error: {error}")
+
+def delete_document(
+    client,
+    database_name: str,
+    collection_name: str,
+    filter_query: dict
+) -> None:
+    if not filter_query:
+        print("Empty filter is not allowed for delete")
+        return
+    collection = get_collection(client, database_name, collection_name)
+    try:
+        result = collection.delete_one(filter_query)
+        print("Document delete result:")
+        print(json.dumps({
+            "filter": filter_query,
+            "deleted_count": result.deleted_count
+        }, indent=2, ensure_ascii=False, default=str))
+
+    except PyMongoError as error:
+        print(f"MongoDB error: {error}")
+
+def update_document(
+    client,
+    database_name: str,
+    collection_name: str,
+    filter_query: dict,
+    update_fields: dict
+) -> None:
+    if not filter_query:
+        print("Empty filter is not allowed for update")
+        return
+    if not update_fields:
+        print("Empty update was not applied")
+        return
+    collection = get_collection(client, database_name, collection_name)
+    try:
+        result = collection.update_one(
+            filter_query,
+            {"$set": update_fields}
+        )
+        print("Document update result:")
+        print(json.dumps({
+            "filter": filter_query,
+            "update": update_fields,
+            "matched_count": result.matched_count,
+            "modified_count": result.modified_count
+        }, indent=2, ensure_ascii=False, default=str))
+
+    except PyMongoError as error:
+        print(f"MongoDB error: {error}")
+
+def drop_collection(
+    client,
+    database_name: str,
+    collection_name: str
+) -> None:
+    confirm = input(f"Type DROP to delete collection '{collection_name}': ")
+    if confirm != "DROP":
+        print("Drop cancelled")
+        return
+    collection = get_collection(client, database_name, collection_name)
+    try:
+        collection.drop()
+        print("Collection dropped:")
+        print(json.dumps({
+            "database": database_name,
+            "collection": collection_name
         }, indent=2, ensure_ascii=False, default=str))
 
     except PyMongoError as error:
@@ -49,6 +105,7 @@ def get_known_fields(collection) -> list[str]:
 
     return sorted(fields)
 
+
 def document_contains_value(document: dict, wanted_value: str) -> bool:
     for key, value in document.items():
         if key == "_id":
@@ -66,27 +123,6 @@ def document_contains_value(document: dict, wanted_value: str) -> bool:
         elif str(value) == wanted_value:
             return True
     return False
-
-def check_user(client, database_name: str, username: str, password: str) -> bool:
-    collection = get_collection(client, database_name, "users")
-    if not username or not password:
-        return False
-    db_user = collection.find_one({"username": username})
-    if db_user is None:
-        return False
-    password_hash = db_user.get("password")
-    if not password_hash:
-        return False
-    ph = PasswordHasher()
-    try:
-        return ph.verify(password_hash, password)
-
-    except (VerifyMismatchError, VerificationError, InvalidHashError):
-        return False
-
-def get_users(client, database_name: str) -> list[dict]:
-    collection = get_collection(client, database_name, "users")
-    return list(collection.find({}, {"password": 0}))
 
 def execute_query(collection, query: dict) -> None:
     operation = query.get("operation")

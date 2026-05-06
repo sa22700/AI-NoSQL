@@ -1,4 +1,12 @@
-from core.Config import FORBIDDEN_KEYS, ALLOWED_VALUE_TYPES, READ_ONLY_MODE, ALLOWED_OPERATIONS
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
+from core.Config import (
+    FORBIDDEN_KEYS,
+    ALLOWED_VALUE_TYPES,
+    READ_ONLY_MODE,
+    ALLOWED_OPERATIONS
+)
 
 def clean_ai_response(text: str) -> str:
     text = text.strip()

@@ -1,14 +1,15 @@
 import json
 import os
 from llama_cpp import Llama
+from core.Config import LLM_MODEL
 from core.ModelSet import clean_ai_response, validate_query
-from core.Connect import cuda_available, estimate_n_gpu_layers
+from core.Gpu import cuda_available, estimate_n_gpu_layers
 
 def load_model() -> Llama:
     vram_gb = cuda_available()
     n_gpu_layers = estimate_n_gpu_layers(vram_gb)
     return Llama(
-        model_path="./unsloth.Q5_K_M.gguf",
+        model_path=LLM_MODEL,
         use_mmap=False,
         n_gpu_layers=n_gpu_layers,
         n_ctx=4096,
@@ -30,22 +31,19 @@ def parse_model_query(raw_output: str, known_fields: list[str]) -> dict | None:
     decoder = json.JSONDecoder()
     position = 0
     valid_queries = []
-
     while position < len(raw_output):
         while position < len(raw_output) and raw_output[position].isspace():
             position += 1
-
         if position >= len(raw_output):
             break
-
         try:
             parsed, next_position = decoder.raw_decode(raw_output, position)
             position = next_position
-
             if isinstance(parsed, dict):
                 try:
                     validated = validate_query(parsed, known_fields)
                     valid_queries.append(validated)
+
                 except ValueError:
                     pass
 
@@ -54,7 +52,6 @@ def parse_model_query(raw_output: str, known_fields: list[str]) -> dict | None:
 
     if not valid_queries:
         return None
-
     return valid_queries[-1]
 
 def create_mongo_query(

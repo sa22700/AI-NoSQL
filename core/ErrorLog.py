@@ -1,6 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
 import traceback
 
-LOG_FILE = "error_log.txt"
+LOG_FILE = "logs/error_log.txt"
 
 def log_error(error_message) -> None:
     with open(LOG_FILE, "a", encoding="utf-8") as log:
