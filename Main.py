@@ -24,7 +24,6 @@ from core.Input import (
     select_user_filter
 )
 from core.Login import ensure_first_user, login_user
-from core.Menu import print_main_menu
 from core.Model import load_model
 from core.Users import add_user, delete_user, get_users
 
@@ -58,7 +57,16 @@ def main() -> None:
         llm = load_model()
         print("Model loaded.")
         while True:
-            print_main_menu()
+            print("\n1: Add document")
+            print("2: Ask database")
+            print("3: Show known fields")
+            print("4: Add user (admin only)")
+            print("5: Delete document (admin only)")
+            print("6: Drop collection (admin only)")
+            print("7: Update document")
+            print("8: Get users list (admin only)")
+            print("9: Delete user (admin only)")
+            print("0: Exit")
             choice = input("Select: ").strip()
             if choice == "1":
                 document = create_document_from_input()
