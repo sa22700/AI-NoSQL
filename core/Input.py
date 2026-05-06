@@ -23,7 +23,7 @@ def create_document_from_input() -> dict:
 def create_update_fields_from_input() -> dict:
     update_fields = {}
     while True:
-        field_name = input("Field to update: ").strip()
+        field_name = input("Field name: ").strip()
         if field_name == "":
             break
         if field_name.startswith("$"):

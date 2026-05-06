@@ -76,7 +76,7 @@ def drop_collection(
     database_name: str,
     collection_name: str
 ) -> None:
-    confirm = input(f"Type DROP to delete collection '{collection_name}': ")
+    confirm = input(f"Type DROP to delete collection '{collection_name}': ").strip()
     if confirm != "DROP":
         print("Drop cancelled")
         return
@@ -104,7 +104,6 @@ def get_known_fields(collection) -> list[str]:
         print(f"MongoDB error: {error}")
 
     return sorted(fields)
-
 
 def document_contains_value(document: dict, wanted_value: str) -> bool:
     for key, value in document.items():

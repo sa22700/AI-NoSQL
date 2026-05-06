@@ -3,7 +3,7 @@
 
 from getpass import getpass
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from core.Database import get_collection
 
 def ensure_first_user(client, database_name: str) -> None:

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import json
+from core.Documents import execute_query, get_known_fields
 from core.Model import create_mongo_query
-from core.Documents import get_known_fields, execute_query
 
 def ask_database(llm, collection, collection_name: str) -> None:
     known_fields = get_known_fields(collection)
