@@ -20,6 +20,7 @@ from core.Documents import (
 from core.Model import create_mongo_query, load_model
 from core.Login import login_user, require_admin
 from core.Database import create_client, get_collection
+from HttpException import raise_for_error
 
 app = FastAPI()
 client = create_client()
@@ -36,11 +37,13 @@ def login(request: LoginRequest) -> dict:
             password=request.password,
         )
         if user is None:
-            return {
+            out = {
                 "ok": False,
                 "username": None,
                 "error": "Invalid username or password",
             }
+            raise_for_error(out)
+            return out
         return {
             "ok": True,
             "username": user.get("username"),
@@ -51,11 +54,13 @@ def login(request: LoginRequest) -> dict:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "username": None,
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest) -> dict:
@@ -67,11 +72,13 @@ def query(request: QueryRequest) -> dict:
             password=request.password,
         )
         if user is None:
-            return {
+            out = {
                 "ok": False,
                 "result": [],
                 "error": "Invalid username or password",
             }
+            raise_for_error(out)
+            return out
         collection = get_collection(
             client=client,
             database_name=request.database_name,
@@ -85,22 +92,28 @@ def query(request: QueryRequest) -> dict:
             known_fields=known_fields,
         )
         if mongo_query is None:
-            return {
+            out = {
                 "ok": False,
                 "result": [],
                 "error": "Model did not return valid query",
             }
-        return execute_query(collection, mongo_query)
+            raise_for_error(out)
+            return out
+        out = execute_query(collection, mongo_query)
+        raise_for_error(out)
+        return out
 
     except HTTPException:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "result": [],
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.post("/add_users", response_model=AddUserResponse)
 def add_users(request: AddUserRequest) -> dict:
@@ -112,37 +125,45 @@ def add_users(request: AddUserRequest) -> dict:
             password=request.password,
         )
         if admin is None:
-            return {
+            out = {
                 "ok": False,
                 "username": None,
                 "error": "Admin rights required",
             }
+            raise_for_error(out)
+            return out
         if request.new_password != request.confirm_password:
-            return {
+            out = {
                 "ok": False,
                 "username": None,
                 "error": "Passwords do not match",
             }
+            raise_for_error(out)
+            return out
         user = {
             "username": request.new_username,
             "password": ph.hash(request.new_password),
             "is_admin": False,
         }
-        return add_user(
+        out = add_user(
             client=client,
             database_name=request.database_name,
             user=user,
         )
+        raise_for_error(out)
+        return out
 
     except HTTPException:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "username": None,
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.post("/delete_users", response_model=DeleteUserResponse)
 def delete_users(request: DeleteUserRequest) -> dict:
@@ -154,28 +175,34 @@ def delete_users(request: DeleteUserRequest) -> dict:
             password=request.password,
         )
         if admin is None:
-            return {
+            out = {
                 "ok": False,
                 "deleted": None,
                 "error": "Admin rights required",
             }
+            raise_for_error(out)
+            return out
         if not request.confirm:
-            return {
+            out = {
                 "ok": False,
                 "deleted": None,
                 "error": "Confirmation required",
             }
+            raise_for_error(out)
+            return out
         result = delete_user(
             client=client,
             database_name=request.database_name,
             filter_query={"username": request.username_to_delete},
         )
         if not result.get("ok"):
-            return {
+            out = {
                 "ok": False,
                 "deleted": None,
                 "error": result.get("error"),
             }
+            raise_for_error(out)
+            return out
         return {
             "ok": True,
             "deleted": request.username_to_delete,
@@ -186,11 +213,13 @@ def delete_users(request: DeleteUserRequest) -> dict:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "deleted": None,
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.post("/drop_collections", response_model=DropCollectionResponse)
 def drop_collections(request: DropCollectionRequest) -> dict:
@@ -202,27 +231,33 @@ def drop_collections(request: DropCollectionRequest) -> dict:
             password=request.password,
         )
         if admin is None:
-            return {
+            out = {
                 "ok": False,
                 "dropped": None,
                 "error": "Admin rights required",
             }
-        return drop_collection(
+            raise_for_error(out)
+            return out
+        out = drop_collection(
             client=client,
             database_name=request.database_name,
             collection_name=request.collection_name,
             confirm=request.confirm,
         )
+        raise_for_error(out)
+        return out
 
     except HTTPException:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "dropped": None,
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.post("/add_documents", response_model=AddDocumentResponse)
 def add_documents(request: AddDocumentRequest) -> dict:
@@ -234,32 +269,38 @@ def add_documents(request: AddDocumentRequest) -> dict:
             password=request.password,
         )
         if user is None:
-            return {
+            out = {
                 "ok": False,
                 "inserted_id": None,
                 "document": None,
                 "error": "Invalid username or password",
             }
+            raise_for_error(out)
+            return out
         collection = get_collection(
             client=client,
             database_name=request.database_name,
             collection_name=request.collection_name,
         )
-        return add_document(
+        out = add_document(
             collection=collection,
             document=request.document,
         )
+        raise_for_error(out)
+        return out
 
     except HTTPException:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "inserted_id": None,
             "document": None,
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.put("/update_documents", response_model=UpdateDocumentResponse)
 def update_documents(request: UpdateDocumentRequest) -> dict:
@@ -271,7 +312,7 @@ def update_documents(request: UpdateDocumentRequest) -> dict:
             password=request.password,
         )
         if user is None:
-            return {
+            out = {
                 "ok": False,
                 "filter": None,
                 "updated": None,
@@ -279,19 +320,23 @@ def update_documents(request: UpdateDocumentRequest) -> dict:
                 "modified_count": 0,
                 "error": "Invalid username or password",
             }
-        return update_document(
+            raise_for_error(out)
+            return out
+        out = update_document(
             client=client,
             database_name=request.database_name,
             collection_name=request.collection_name,
             filter_query=request.filter_query,
             update_fields=request.update_fields,
         )
+        raise_for_error(out)
+        return out
 
     except HTTPException:
         raise
 
     except Exception as error:
-        return {
+        out = {
             "ok": False,
             "filter": None,
             "updated": None,
@@ -299,6 +344,8 @@ def update_documents(request: UpdateDocumentRequest) -> dict:
             "modified_count": 0,
             "error": str(error)
         }
+        raise_for_error(out)
+        return out
 
 @app.get("/health")
 def health() -> dict:
