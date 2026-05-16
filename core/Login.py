@@ -82,6 +82,22 @@ def ensure_first_user(
             "error": str(error),
         }
 
+    except EOFError as error:
+        return {
+            "ok": False,
+            "created": False,
+            "username": None,
+            "error": str(error),
+        }
+
+    except KeyboardInterrupt as error:
+        return {
+            "ok": False,
+            "created": False,
+            "username": None,
+            "error": str(error),
+        }
+
 def login_user(
     client,
     database_name: str,

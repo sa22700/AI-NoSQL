@@ -68,3 +68,23 @@ def ask_database(
         if print_output:
             print(result["error"])
         return result
+
+    except EOFError as error:
+        result = {
+            "ok": False,
+            "result": [],
+            "error": str(error)
+        }
+        if print_output:
+            print(result["error"])
+        return result
+
+    except KeyboardInterrupt as error:
+        result = {
+            "ok": False,
+            "result": [],
+            "error": str(error)
+        }
+        if print_output:
+            print(result["error"])
+        return result

@@ -119,3 +119,11 @@ def select_user_filter(client, database_name: str) -> dict | None:
     except PyMongoError as error:
         print(f"MongoDB error: {error}")
         return None
+
+    except ValueError as error:
+        print(f"MongoDB error: {error}")
+        return None
+
+    except KeyboardInterrupt as error:
+        print(f"MongoDB error: {error}")
+        return None

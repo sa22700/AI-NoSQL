@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Pirkka Toivakka
 # SPDX-License-Identifier: Apache-2.0
 
-import json
 from pymongo.errors import PyMongoError
 from core.Database import get_collection
 
