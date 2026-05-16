@@ -34,7 +34,7 @@ def contains_forbidden_key(value) -> bool:
                 return True
     return False
 
-def validate_filter_fields(filter_query: dict, known_fields: list[str]) -> None:
+def validate_filter_fields(filter_query: dict, known_fields: list[str]) -> dict:
     if not known_fields:
         return
     allowed_fields = set(known_fields)
@@ -47,7 +47,7 @@ def validate_filter_fields(filter_query: dict, known_fields: list[str]) -> None:
         if not isinstance(value, ALLOWED_VALUE_TYPES):
             raise ValueError(f"Only exact value matching is allowed for field: {key}")
 
-def validate_projection_fields(projection: dict, known_fields: list[str]) -> None:
+def validate_projection_fields(projection: dict, known_fields: list[str]) -> dict:
     if not known_fields:
         return
     allowed_fields = set(known_fields)

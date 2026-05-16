@@ -5,41 +5,62 @@ import json
 from pymongo.errors import PyMongoError
 from core.Database import get_collection
 
-def add_document(collection, document: dict) -> None:
+def add_document(collection, document: dict) -> dict:
     if not document:
-        print("Empty document was not added")
-        return
+        return {
+            "ok": False,
+            "inserted_id": None,
+            "document": None,
+            "error": "Empty document was not added",
+        }
     try:
         result = collection.insert_one(document)
-        print("Document added:")
-        print(json.dumps({
+        safe_document = dict(document)
+        if "_id" in safe_document:
+            safe_document["_id"] = str(safe_document["_id"])
+        return {
+            "ok": True,
             "inserted_id": str(result.inserted_id),
-            "document": document
-        }, indent=2, ensure_ascii=False, default=str))
+            "document": safe_document,
+            "error": None,
+        }
 
     except PyMongoError as error:
-        print(f"MongoDB error: {error}")
+        return {
+            "ok": False,
+            "inserted_id": None,
+            "document": None,
+            "error": str(error),
+        }
 
 def delete_document(
     client,
     database_name: str,
     collection_name: str,
     filter_query: dict
-) -> None:
+) -> dict:
     if not filter_query:
-        print("Empty filter is not allowed for delete")
-        return
+        return {
+            "ok": False,
+            "deleted_count": 0,
+            "error": "Empty filter is not allowed for delete",
+        }
     collection = get_collection(client, database_name, collection_name)
     try:
         result = collection.delete_one(filter_query)
-        print("Document delete result:")
-        print(json.dumps({
+        return {
+            "ok": True,
             "filter": filter_query,
-            "deleted_count": result.deleted_count
-        }, indent=2, ensure_ascii=False, default=str))
+            "deleted_count": result.deleted_count,
+            "error": None,
+        }
 
     except PyMongoError as error:
-        print(f"MongoDB error: {error}")
+        return {
+            "ok": False,
+            "deleted_count": 0,
+            "error": str(error),
+        }
 
 def update_document(
     client,
@@ -47,50 +68,72 @@ def update_document(
     collection_name: str,
     filter_query: dict,
     update_fields: dict
-) -> None:
+) -> dict:
     if not filter_query:
-        print("Empty filter is not allowed for update")
-        return
+        return {
+            "ok": False,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": "Empty filter is not allowed for update",
+        }
     if not update_fields:
-        print("Empty update was not applied")
-        return
+        return {
+            "ok": False,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": "Empty update was not applied",
+        }
     collection = get_collection(client, database_name, collection_name)
     try:
         result = collection.update_one(
             filter_query,
             {"$set": update_fields}
         )
-        print("Document update result:")
-        print(json.dumps({
+        return {
+            "ok": True,
             "filter": filter_query,
-            "update": update_fields,
+            "updated": update_fields,
             "matched_count": result.matched_count,
-            "modified_count": result.modified_count
-        }, indent=2, ensure_ascii=False, default=str))
+            "modified_count": result.modified_count,
+            "error": None,
+        }
 
     except PyMongoError as error:
-        print(f"MongoDB error: {error}")
+        return {
+            "ok": False,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": str(error),
+        }
 
 def drop_collection(
     client,
     database_name: str,
-    collection_name: str
-) -> None:
-    confirm = input(f"Type DROP to delete collection '{collection_name}': ").strip()
-    if confirm != "DROP":
-        print("Drop cancelled")
-        return
+    collection_name: str,
+    confirm: bool = False
+) -> dict:
+    if not confirm:
+        return {
+            "ok": False,
+            "dropped": None,
+            "error": "Confirmation required",
+        }
     collection = get_collection(client, database_name, collection_name)
     try:
         collection.drop()
-        print("Collection dropped:")
-        print(json.dumps({
+        return {
+            "ok": True,
+            "dropped": collection_name,
             "database": database_name,
-            "collection": collection_name
-        }, indent=2, ensure_ascii=False, default=str))
+            "error": None,
+        }
 
     except PyMongoError as error:
-        print(f"MongoDB error: {error}")
+        return {
+            "ok": False,
+            "dropped": None,
+            "error": str(error),
+        }
 
 def get_known_fields(collection) -> list[str]:
     fields = set()
@@ -123,39 +166,57 @@ def document_contains_value(document: dict, wanted_value: str) -> bool:
             return True
     return False
 
-def execute_query(collection, query: dict) -> None:
+def execute_query(collection, query: dict) -> dict:
     operation = query.get("operation")
     filter_query = query.get("filter", {})
     projection = query.get("projection", {})
     try:
         if operation == "find":
-            results = collection.find(filter_query, projection)
-            found = False
-            for index, document in enumerate(results, start=1):
-                found = True
-                print(f"\n{index}:")
-                print(json.dumps(document, indent=2, ensure_ascii=False, default=str))
-            if not found:
-                print("No documents found")
-        elif operation == "count_documents":
+            results = list(collection.find(filter_query, projection))
+            for document in results:
+                if "_id" in document:
+                    document["_id"] = str(document["_id"])
+            return {
+                "ok": True,
+                "result": results,
+                "error": None,
+            }
+        if operation == "count_documents":
             count = collection.count_documents(filter_query)
-            print(f"Count: {count}")
-        elif operation == "find_by_value":
+            return {
+                "ok": True,
+                "result": [{"count": count}],
+                "error": None,
+            }
+        if operation == "find_by_value":
             wanted_value = query.get("value")
+
             if wanted_value is None:
-                print("Missing value")
-                return
-            results = collection.find({})
-            found = False
-            for index, document in enumerate(results, start=1):
+                return {
+                    "ok": False,
+                    "result": [],
+                    "error": "Missing value",
+                }
+            results = []
+            for document in collection.find({}):
                 if document_contains_value(document, str(wanted_value)):
-                    found = True
-                    print(f"\n{index}:")
-                    print(json.dumps(document, indent=2, ensure_ascii=False, default=str))
-            if not found:
-                print("No documents found")
-        else:
-            print("Unsupported operation")
+                    if "_id" in document:
+                        document["_id"] = str(document["_id"])
+                    results.append(document)
+            return {
+                "ok": True,
+                "result": results,
+                "error": None,
+            }
+        return {
+            "ok": False,
+            "result": [],
+            "error": "Unsupported operation",
+        }
 
     except PyMongoError as error:
-        print(f"MongoDB error: {error}")
+        return {
+            "ok": False,
+            "result": [],
+            "error": str(error),
+        }

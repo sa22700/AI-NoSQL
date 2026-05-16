@@ -6,32 +6,81 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from core.Database import get_collection
 
-def ensure_first_user(client, database_name: str) -> None:
+def ensure_first_user(
+    client,
+    database_name: str,
+    username: str | None = None,
+    password: str | None = None,
+    confirm_password: str | None = None,
+    interactive: bool = True,
+    print_output: bool = True
+) -> dict:
     collection = get_collection(client, database_name, "users")
-    user_count = collection.count_documents({})
-    if user_count > 0:
-        return
-    ph = PasswordHasher()
-    print("No users found. Create first admin user.")
-    while True:
-        username = input("Create username: ").strip()
-        password = getpass("Create password: ").strip()
-        confirm_pass = getpass("Confirm password: ").strip()
-        if not username or not password:
-            print("Username and password cannot be empty.")
-            continue
-        if password != confirm_pass:
-            print("Passwords do not match.")
-            continue
-        password_hash = ph.hash(password)
+    try:
+        if collection.count_documents({}) > 0:
+            return {
+                "ok": True,
+                "created": False,
+                "username": None,
+                "error": None,
+            }
+        ph = PasswordHasher()
+        if print_output:
+            print("No users found. Create first admin user.")
+        if interactive:
+            while True:
+                username = input("Create username: ").strip()
+                password = getpass("Create password: ").strip()
+                confirm_password = getpass("Confirm password: ").strip()
+                if not username or not password:
+                    if print_output:
+                        print("Username and password cannot be empty.")
+                    continue
+                if password != confirm_password:
+                    if print_output:
+                        print("Passwords do not match.")
+                    continue
+                break
+        else:
+            username = (username or "").strip()
+            password = (password or "").strip()
+            confirm_password = (confirm_password or "").strip()
+            if not username or not password:
+                return {
+                    "ok": False,
+                    "created": False,
+                    "username": None,
+                    "error": "Username and password cannot be empty.",
+                }
+            if password != confirm_password:
+                return {
+                    "ok": False,
+                    "created": False,
+                    "username": None,
+                    "error": "Passwords do not match.",
+                }
         user = {
             "username": username,
-            "password": password_hash,
-            "is_admin": True
+            "password": ph.hash(password),
+            "is_admin": True,
         }
         collection.insert_one(user)
-        print("First admin user created.")
-        break
+        if print_output:
+            print("First admin user created.")
+        return {
+            "ok": True,
+            "created": True,
+            "username": username,
+            "error": None,
+        }
+
+    except PyMongoError as error:
+        return {
+            "ok": False,
+            "created": False,
+            "username": None,
+            "error": str(error),
+        }
 
 def login_user(
     client,
@@ -57,3 +106,21 @@ def login_user(
         return None
 
     return None
+
+def require_admin(
+    client,
+    database_name: str,
+    username: str,
+    password: str
+) -> dict | None:
+    user = login_user(
+        client=client,
+        database_name=database_name,
+        username=username,
+        password=password,
+    )
+    if user is None:
+        return None
+    if not user.get("is_admin"):
+        return None
+    return user
