@@ -70,3 +70,18 @@ class UpdateDocumentResponse(BaseModel):
     modified_count: int = 0
     ok: bool
     error: str | None = None
+
+class UpdateUserRequest(LoginRequest):
+    username_to_update: str
+    new_username: str | None = None
+    new_password: str | None = None
+    confirm_password: str | None = None
+    is_admin: bool | None = None
+
+class UpdateUserResponse(BaseModel):
+    filter: dict[str, Any] | None = None
+    updated: dict[str, Any] | None = None
+    matched_count: int = 0
+    modified_count: int = 0
+    ok: bool
+    error: str | None = None

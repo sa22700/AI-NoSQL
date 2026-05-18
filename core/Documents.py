@@ -68,6 +68,13 @@ def update_document(
     filter_query: dict,
     update_fields: dict
 ) -> dict:
+    if collection_name.strip().lower() == "users":
+        return {
+            "ok": False,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": "Updating users collection is not allowed",
+        }
     if not filter_query:
         return {
             "ok": False,

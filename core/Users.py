@@ -74,6 +74,72 @@ def delete_user(
             "error": str(error),
         }
 
+def update_user(
+    client,
+    database_name: str,
+    filter_query: dict,
+    update_fields: dict,
+) -> dict:
+    if not filter_query:
+        return {
+            "ok": False,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": "Empty filter is not allowed for update",
+        }
+    if not update_fields:
+        return {
+            "ok": False,
+            "filter": filter_query,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": "Empty update was not applied",
+        }
+    allowed_fields = {"username", "password", "is_admin"}
+    for field_name in update_fields:
+        if field_name.startswith("$"):
+            return {
+                "ok": False,
+                "filter": filter_query,
+                "matched_count": 0,
+                "modified_count": 0,
+                "error": "Field name cannot start with $",
+            }
+        if field_name not in allowed_fields:
+            return {
+                "ok": False,
+                "filter": filter_query,
+                "matched_count": 0,
+                "modified_count": 0,
+                "error": f"Field is not allowed for user update: {field_name}",
+            }
+    collection = get_collection(client, database_name, "users")
+    try:
+        result = collection.update_one(
+            filter_query,
+            {"$set": update_fields},
+        )
+        safe_update = dict(update_fields)
+        if "password" in safe_update:
+            safe_update["password"] = "<hidden>"
+        return {
+            "ok": True,
+            "filter": filter_query,
+            "updated": safe_update,
+            "matched_count": result.matched_count,
+            "modified_count": result.modified_count,
+            "error": None,
+        }
+
+    except PyMongoError as error:
+        return {
+            "ok": False,
+            "filter": filter_query,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": str(error),
+        }
+
 def get_users(client, database_name: str) -> list[dict]:
     collection = get_collection(client, database_name, "users")
     try:

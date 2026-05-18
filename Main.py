@@ -21,7 +21,9 @@ from core.Input import (
     create_update_fields_from_input,
     create_user_from_input,
     select_document_filter,
-    select_user_filter
+    select_user_filter,
+    create_user_update_from_input,
+    update_user_filter
 )
 from core.Login import ensure_first_user, login_user
 from core.Model import load_model
@@ -66,6 +68,7 @@ def main() -> None:
             print("7: Update document")
             print("8: Get users list (admin only)")
             print("9: Delete user (admin only)")
+            print("10: Update user (admin only)")
             print("0: Exit")
             choice = input("Select: ").strip()
             if choice == "1":
@@ -137,6 +140,26 @@ def main() -> None:
                 filter_query = select_user_filter(client, database_name)
                 if filter_query is not None:
                     delete_user(client, database_name, filter_query)
+            elif choice == "10":
+                is_admin = current_user.get("is_admin", False)
+                if not is_admin:
+                    print("Only admin can update users.")
+                    continue
+                print("Update user:")
+                filter_query = update_user_filter(client, database_name)
+                if filter_query is None:
+                    continue
+                update_fields = create_user_update_from_input()
+                if not update_fields:
+                    print("Empty update was not executed")
+                    continue
+                result = update_user(
+                    client=client,
+                    database_name=database_name,
+                    filter_query=filter_query,
+                    update_fields=update_fields,
+                )
+                print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
             elif choice == "0":
                 break
             else:

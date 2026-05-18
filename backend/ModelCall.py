@@ -8,8 +8,10 @@ from ModelBase import (
     DropCollectionRequest, DropCollectionResponse,
     AddDocumentRequest, AddDocumentResponse,
     UpdateDocumentRequest, UpdateDocumentResponse,
+    UpdateUserRequest, UpdateUserResponse
 )
-from core.Users import add_user, delete_user
+from backend.ModelBase import UpdateUserRequest
+from core.Users import add_user, delete_user, update_user
 from core.Documents import (
     add_document,
     update_document,
@@ -143,7 +145,7 @@ def add_users(request: AddUserRequest) -> dict:
         user = {
             "username": request.new_username,
             "password": ph.hash(request.new_password),
-            "is_admin": False,
+            "is_admin": request.is_admin,
         }
         out = add_user(
             client=client,
@@ -343,6 +345,116 @@ def update_documents(request: UpdateDocumentRequest) -> dict:
             "matched_count": 0,
             "modified_count": 0,
             "error": str(error)
+        }
+        raise_for_error(out)
+        return out
+
+@app.put("/update_users", response_model=UpdateUserResponse)
+def update_users(request: UpdateUserRequest) -> dict:
+    try:
+        admin = require_admin(
+            client=client,
+            database_name=request.database_name,
+            username=request.username,
+            password=request.password,
+        )
+        if admin is None:
+            out = {
+                "ok": False,
+                "filter": None,
+                "updated": None,
+                "matched_count": 0,
+                "modified_count": 0,
+                "error": "Admin rights required",
+            }
+            raise_for_error(out)
+            return out
+        filter_query = {
+            "username": request.username_to_update,
+        }
+        update_fields = {}
+        if request.new_username is not None:
+            new_username = request.new_username.strip()
+            if not new_username:
+                out = {
+                    "ok": False,
+                    "filter": filter_query,
+                    "updated": None,
+                    "matched_count": 0,
+                    "modified_count": 0,
+                    "error": "Username cannot be empty",
+                }
+                raise_for_error(out)
+                return out
+            if new_username.startswith("$"):
+                out = {
+                    "ok": False,
+                    "filter": filter_query,
+                    "updated": None,
+                    "matched_count": 0,
+                    "modified_count": 0,
+                    "error": "Username cannot start with $",
+                }
+                raise_for_error(out)
+                return out
+            update_fields["username"] = new_username
+        if request.new_password is not None or request.confirm_password is not None:
+            if not request.new_password or not request.confirm_password:
+                out = {
+                    "ok": False,
+                    "filter": filter_query,
+                    "updated": None,
+                    "matched_count": 0,
+                    "modified_count": 0,
+                    "error": "Password and confirmation are required",
+                }
+                raise_for_error(out)
+                return out
+            if request.new_password != request.confirm_password:
+                out = {
+                    "ok": False,
+                    "filter": filter_query,
+                    "updated": None,
+                    "matched_count": 0,
+                    "modified_count": 0,
+                    "error": "Passwords do not match",
+                }
+                raise_for_error(out)
+                return out
+            update_fields["password"] = ph.hash(request.new_password)
+        if request.is_admin is not None:
+            update_fields["is_admin"] = request.is_admin
+        if not update_fields:
+            out = {
+                "ok": False,
+                "filter": filter_query,
+                "updated": None,
+                "matched_count": 0,
+                "modified_count": 0,
+                "error": "Empty update was not applied",
+            }
+            raise_for_error(out)
+            return out
+        out = update_user(
+            client=client,
+            database_name=request.database_name,
+            filter_query=filter_query,
+            update_fields=update_fields,
+        )
+        raise_for_error(out)
+        return out
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        out = {
+            "ok": False,
+            "filter": None,
+            "updated": None,
+            "matched_count": 0,
+            "modified_count": 0,
+            "error": str(error),
         }
         raise_for_error(out)
         return out
