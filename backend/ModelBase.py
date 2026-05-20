@@ -10,6 +10,7 @@ class LoginResponse(BaseModel):
     username: str | None = None
     ok: bool
     error: str | None = None
+    is_admin: bool | None = None
 
 class QueryRequest(LoginRequest):
     collection_name: str
@@ -24,6 +25,7 @@ class AddUserRequest(LoginRequest):
     new_username: str
     new_password: str
     confirm_password: str
+    is_admin: bool = False
 
 class AddUserResponse(BaseModel):
     username: str | None = None

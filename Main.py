@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from getpass import getpass
+import json
 from core.Actions import ask_database
 from core.Database import (
     create_client,
@@ -130,7 +131,8 @@ def main() -> None:
                 if not is_admin:
                     print("Only admin can get users list.")
                     continue
-                get_users(client, database_name)
+                users = get_users(client, database_name)
+                print(json.dumps(users, indent=2, ensure_ascii=False, default=str))
             elif choice == "9":
                 is_admin = current_user.get("is_admin", False)
                 if not is_admin:

@@ -16,9 +16,10 @@ def raise_for_error(out: dict) -> None:
     ):
         raise HTTPException(status_code=403, detail=error)
     if error in (
-        "User not found",
-        "Not found",
-        "Collection not found",
+            "User not found",
+            "Document not found",
+            "Not found",
+            "Collection not found",
     ):
         raise HTTPException(status_code=404, detail=error)
     if error in (
