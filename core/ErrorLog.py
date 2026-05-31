@@ -3,7 +3,7 @@
 
 import traceback
 
-LOG_FILE = "logs/error_log.txt"
+LOG_FILE = os.getenv("ERROR_LOGS")
 
 def log_error(error_message) -> None:
     with open(LOG_FILE, "a", encoding="utf-8") as log:

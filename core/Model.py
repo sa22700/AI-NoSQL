@@ -18,7 +18,8 @@ def load_model() -> Llama:
 
 def build_prompt(collection_name: str, known_fields: list[str]) -> str:
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    PROMPT_PATH = os.path.join(BASE_DIR, "prompt", "mongo_prompt.txt")
+    PROMPT_TXT = os.getenv("PROMPT_TXT")
+    PROMPT_PATH = os.path.join(BASE_DIR, "prompt", PROMPT_TXT)
     fields_text = ", ".join(known_fields) if known_fields else "unknown"
     with open (PROMPT_PATH, "r", encoding="utf-8") as file:
         temp = file.read()

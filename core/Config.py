@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: 2026 Pirkka Toivakka
 # SPDX-License-Identifier: Apache-2.0
 
-MONGO_URI = "mongodb://100.109.50.66:27017/"
-LLM_MODEL = "./unsloth.Q5_K_M.gguf"
+import os
+
+MONGO_URI = os.getenv("MONGO_URI")
+LLM_MODEL = os.getenv("LLM_MODEL")
 READ_ONLY_MODE = True
 ALLOWED_OPERATIONS = {
     "find",
