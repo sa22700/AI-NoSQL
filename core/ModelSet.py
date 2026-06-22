@@ -74,6 +74,30 @@ def validate_query(query: dict, known_fields: list[str]) -> dict:
         raise ValueError("Projection must be an object")
     if contains_forbidden_key(query):
         raise ValueError("Query contains forbidden MongoDB operator")
+    if operation == "search_documents":
+        return validate_search_documents_query(query)
     validate_filter_fields(filter_query, known_fields)
     validate_projection_fields(projection, known_fields)
     return query
+
+def validate_search_documents_query(query: dict) -> dict:
+    search_text = query.get("query")
+    if search_text is None:
+        search_text = query.get("value")
+    if not isinstance(search_text, str):
+        raise ValueError("Search query must be a string")
+    search_text = search_text.strip()
+    if not search_text:
+        raise ValueError("Search query cannot be empty")
+    filter_query = query.get("filter", {})
+    projection = query.get("projection", {})
+    if filter_query not in ({}, None):
+        raise ValueError("search_documents does not allow custom filters")
+    if projection not in ({}, None):
+        raise ValueError("search_documents does not allow custom projections")
+    return {
+        "operation": "search_documents",
+        "query": search_text,
+        "filter": {},
+        "projection": {}
+    }

@@ -9,7 +9,8 @@ READ_ONLY_MODE = True
 ALLOWED_OPERATIONS = {
     "find",
     "count_documents",
-    "find_by_value"
+    "find_by_value",
+    "search_documents"
 }
 FORBIDDEN_KEYS = {
     "$where",

@@ -172,6 +172,33 @@ def document_contains_value(document: dict, wanted_value: str) -> bool:
             return True
     return False
 
+def has_text_index(collection) -> bool:
+    indexes = collection.index_information()
+    for index_info in indexes.values():
+        if "weights" in index_info:
+            return True
+        for _, direction in index_info.get("key", []):
+            if direction == "text":
+                return True
+    return False
+
+def ensure_text_search_index(collection) -> None:
+    if has_text_index(collection):
+        return
+    collection.create_index(
+        [("$**", "text")],
+        name="ai_text_search",
+        default_language="none"
+    )
+
+def make_document_safe(document: dict) -> dict:
+    safe_document = dict(document)
+
+    if "_id" in safe_document:
+        safe_document["_id"] = str(safe_document["_id"])
+
+    return safe_document
+
 def execute_query(collection, query: dict) -> dict:
     operation = query.get("operation")
     filter_query = query.get("filter", {})
@@ -212,6 +239,45 @@ def execute_query(collection, query: dict) -> dict:
             return {
                 "ok": True,
                 "result": results,
+                "error": None,
+            }
+        if operation == "search_documents":
+            search_text = query.get("query")
+            if not search_text:
+                return {
+                    "ok": False,
+                    "result": [],
+                    "error": "Missing search query",
+                }
+            ensure_text_search_index(collection)
+            results = list(
+                collection.find(
+                    {
+                        "$text": {
+                            "$search": search_text
+                        }
+                    },
+                    {
+                        "score": {
+                            "$meta": "textScore"
+                        }
+                    }
+                )
+                .sort([
+                    ("score", {
+                        "$meta": "textScore"
+                    })
+                ])
+            )
+            safe_results = []
+
+            for document in results:
+                safe_document = make_document_safe(document)
+                safe_results.append(safe_document)
+
+            return {
+                "ok": True,
+                "result": safe_results,
                 "error": None,
             }
         return {
