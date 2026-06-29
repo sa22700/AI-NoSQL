@@ -10,9 +10,10 @@ def load_model() -> Llama:
     n_gpu_layers = estimate_n_gpu_layers(vram_gb)
     return Llama(
         model_path=LLM_MODEL,
-        use_mmap=False,
+        use_mmap=True,
         n_gpu_layers=n_gpu_layers,
         n_ctx=4096,
+        use_mlock=True,
         verbose=False
     )
 

@@ -29,7 +29,9 @@ from core.Input import (
 from core.Login import ensure_first_user, login_user
 from core.Model import load_model
 from core.Users import add_user, delete_user, get_users
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def main() -> None:
     client = create_client()
