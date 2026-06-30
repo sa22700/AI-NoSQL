@@ -3,15 +3,12 @@ import os
 from llama_cpp import Llama
 from core.Config import LLM_MODEL
 from core.ModelSet import clean_ai_response, validate_query
-from core.Gpu import cuda_available, estimate_n_gpu_layers
 
 def load_model() -> Llama:
-    vram_gb = cuda_available()
-    n_gpu_layers = estimate_n_gpu_layers(vram_gb)
     return Llama(
         model_path=LLM_MODEL,
         use_mmap=True,
-        n_gpu_layers=n_gpu_layers,
+        n_gpu_layers=-1,
         n_ctx=4096,
         use_mlock=True,
         verbose=False
