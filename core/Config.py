@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
-# SPDX-License-Identifier: Apache-2.0
-
 import os
 from dotenv import load_dotenv
 
@@ -8,34 +5,11 @@ load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 LLM_MODEL = os.getenv("LLM_MODEL")
-READ_ONLY_MODE = True
-ALLOWED_OPERATIONS = {
-    "find",
-    "count_documents",
-    "find_by_value",
-    "search_documents"
-}
-FORBIDDEN_KEYS = {
+
+FORBIDDEN_TOKENS = {
     "$where",
-    "$out",
-    "$merge",
     "$function",
     "$accumulator",
-    "$regex",
-    "$expr",
-    "$jsonSchema",
-    "$lookup",
-    "$graphLookup",
-    "$unionWith",
-    "$text",
-    "$near",
-    "$nearSphere",
-    "$geoNear"
+    "$out",
+    "$merge",
 }
-ALLOWED_VALUE_TYPES = (
-    str,
-    int,
-    float,
-    bool,
-    type(None)
-)

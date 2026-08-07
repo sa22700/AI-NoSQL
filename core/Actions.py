@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Pirkka Toivakka
 # SPDX-License-Identifier: Apache-2.0
 
-import json
 from core.Documents import execute_query, get_known_fields
 from core.Model import create_mongo_query
 
@@ -17,10 +16,13 @@ def ask_database(
         result = {
             "ok": False,
             "result": [],
-            "error": "Collection has no known fields yet. Add at least one document first."
+            "error": (
+                "Collection has no known fields yet. "
+                "Add at least one document first."
+            )
         }
         if print_output:
-            print(result["error"])
+            print(f"Error: {result['error']}")
         return result
     if question is None:
         question = input("Question: ").strip()
@@ -31,32 +33,32 @@ def ask_database(
             collection_name=collection_name,
             known_fields=known_fields
         )
-        if print_output:
-            print("Generated query:")
-            print(json.dumps(query, indent=2, ensure_ascii=False, default=str))
         if query is None:
             result = {
                 "ok": False,
                 "result": [],
-                "error": "Query was not executed because model output was invalid"
+                "error": "Model output was invalid"
             }
             if print_output:
-                print(result["error"])
+                print(f"Error: {result['error']}")
             return result
-        result = execute_query(collection, query)
+        result = execute_query(
+            collection=collection,
+            query=query
+        )
         if print_output:
-            print("Result:")
-            print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
-        return result
-
-    except json.JSONDecodeError:
-        result = {
-            "ok": False,
-            "result": [],
-            "error": "Model did not return valid JSON"
-        }
-        if print_output:
-            print(result["error"])
+            print("\nQuery:")
+            print(query)
+            if result["error"]:
+                print(f"\nError: {result['error']}")
+            else:
+                print("\nAnswer:")
+                if not result["result"]:
+                    print("No results.")
+                else:
+                    for document in result["result"]:
+                        for key, value in document.items():
+                            print(f"{key}: {value}")
         return result
 
     except ValueError as error:
@@ -65,8 +67,9 @@ def ask_database(
             "result": [],
             "error": f"Rejected query: {error}"
         }
+
         if print_output:
-            print(result["error"])
+            print(f"Error: {result['error']}")
         return result
 
     except EOFError as error:
@@ -75,16 +78,18 @@ def ask_database(
             "result": [],
             "error": str(error)
         }
+
         if print_output:
-            print(result["error"])
+            print(f"Error: {result['error']}")
         return result
 
-    except KeyboardInterrupt as error:
+    except KeyboardInterrupt:
         result = {
             "ok": False,
             "result": [],
-            "error": str(error)
+            "error": "Query cancelled"
         }
+
         if print_output:
-            print(result["error"])
+            print(f"Error: {result['error']}")
         return result

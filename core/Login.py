@@ -3,6 +3,7 @@
 
 from getpass import getpass
 from argon2 import PasswordHasher
+from pymongo.errors import PyMongoError
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from core.Database import get_collection
 

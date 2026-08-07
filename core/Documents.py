@@ -1,8 +1,42 @@
 # SPDX-FileCopyrightText: 2026 Pirkka Toivakka
 # SPDX-License-Identifier: Apache-2.0
 
+from bson.json_util import loads
 from pymongo.errors import PyMongoError
 from core.Database import get_collection
+
+def execute_query(collection, query: str) -> dict:
+    try:
+        filter_query = loads(query)
+        if not isinstance(filter_query, dict):
+            return {
+                "ok": False,
+                "result": [],
+                "error": "MongoDB query must be an object",
+            }
+        results = list(collection.find(filter_query))
+        for document in results:
+            if "_id" in document:
+                document["_id"] = str(document["_id"])
+        return {
+            "ok": True,
+            "result": results,
+            "error": None,
+        }
+
+    except (ValueError, TypeError) as error:
+        return {
+            "ok": False,
+            "result": [],
+            "error": f"Invalid MongoDB query: {error}",
+        }
+
+    except PyMongoError as error:
+        return {
+            "ok": False,
+            "result": [],
+            "error": str(error),
+        }
 
 def add_document(collection, document: dict) -> dict:
     if not document:
@@ -16,7 +50,9 @@ def add_document(collection, document: dict) -> dict:
         result = collection.insert_one(document)
         safe_document = dict(document)
         if "_id" in safe_document:
-            safe_document["_id"] = str(safe_document["_id"])
+            safe_document["_id"] = str(
+                safe_document["_id"]
+            )
         return {
             "ok": True,
             "inserted_id": str(result.inserted_id),
@@ -91,10 +127,7 @@ def update_document(
         }
     collection = get_collection(client, database_name, collection_name)
     try:
-        result = collection.update_one(
-            filter_query,
-            {"$set": update_fields}
-        )
+        result = collection.update_one(filter_query, {"$set": update_fields})
         return {
             "ok": True,
             "filter": filter_query,
@@ -144,7 +177,7 @@ def drop_collection(
 def get_known_fields(collection) -> list[str]:
     fields = set()
     try:
-        for document in collection.find({}).limit(20):
+        for document in collection.find({}):
             for key in document.keys():
                 if key != "_id":
                     fields.add(key)
@@ -153,142 +186,3 @@ def get_known_fields(collection) -> list[str]:
         print(f"MongoDB error: {error}")
 
     return sorted(fields)
-
-def document_contains_value(document: dict, wanted_value: str) -> bool:
-    for key, value in document.items():
-        if key == "_id":
-            continue
-        if isinstance(value, dict):
-            if document_contains_value(value, wanted_value):
-                return True
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    if document_contains_value(item, wanted_value):
-                        return True
-                elif str(item) == wanted_value:
-                    return True
-        elif str(value) == wanted_value:
-            return True
-    return False
-
-def has_text_index(collection) -> bool:
-    indexes = collection.index_information()
-    for index_info in indexes.values():
-        if "weights" in index_info:
-            return True
-        for _, direction in index_info.get("key", []):
-            if direction == "text":
-                return True
-    return False
-
-def ensure_text_search_index(collection) -> None:
-    if has_text_index(collection):
-        return
-    collection.create_index(
-        [("$**", "text")],
-        name="ai_text_search",
-        default_language="none"
-    )
-
-def make_document_safe(document: dict) -> dict:
-    safe_document = dict(document)
-
-    if "_id" in safe_document:
-        safe_document["_id"] = str(safe_document["_id"])
-
-    return safe_document
-
-def execute_query(collection, query: dict) -> dict:
-    operation = query.get("operation")
-    filter_query = query.get("filter", {})
-    projection = query.get("projection", {})
-    try:
-        if operation == "find":
-            results = list(collection.find(filter_query, projection))
-            for document in results:
-                if "_id" in document:
-                    document["_id"] = str(document["_id"])
-            return {
-                "ok": True,
-                "result": results,
-                "error": None,
-            }
-        if operation == "count_documents":
-            count = collection.count_documents(filter_query)
-            return {
-                "ok": True,
-                "result": [{"count": count}],
-                "error": None,
-            }
-        if operation == "find_by_value":
-            wanted_value = query.get("value")
-
-            if wanted_value is None:
-                return {
-                    "ok": False,
-                    "result": [],
-                    "error": "Missing value",
-                }
-            results = []
-            for document in collection.find({}):
-                if document_contains_value(document, str(wanted_value)):
-                    if "_id" in document:
-                        document["_id"] = str(document["_id"])
-                    results.append(document)
-            return {
-                "ok": True,
-                "result": results,
-                "error": None,
-            }
-        if operation == "search_documents":
-            search_text = query.get("query")
-            if not search_text:
-                return {
-                    "ok": False,
-                    "result": [],
-                    "error": "Missing search query",
-                }
-            ensure_text_search_index(collection)
-            results = list(
-                collection.find(
-                    {
-                        "$text": {
-                            "$search": search_text
-                        }
-                    },
-                    {
-                        "score": {
-                            "$meta": "textScore"
-                        }
-                    }
-                )
-                .sort([
-                    ("score", {
-                        "$meta": "textScore"
-                    })
-                ])
-            )
-            safe_results = []
-
-            for document in results:
-                safe_document = make_document_safe(document)
-                safe_results.append(safe_document)
-
-            return {
-                "ok": True,
-                "result": safe_results,
-                "error": None,
-            }
-        return {
-            "ok": False,
-            "result": [],
-            "error": "Unsupported operation",
-        }
-
-    except PyMongoError as error:
-        return {
-            "ok": False,
-            "result": [],
-            "error": str(error),
-        }

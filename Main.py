@@ -76,11 +76,15 @@ def main() -> None:
             choice = input("Select: ").strip()
             if choice == "1":
                 document = create_document_from_input()
-                add_document(collection, document)
+                add_document(collection=collection, document=document)
             elif choice == "2":
-                ask_database(llm, collection, collection_name)
+                ask_database(
+                    llm=llm,
+                    collection=collection,
+                    collection_name=collection_name
+                )
             elif choice == "3":
-                fields = get_known_fields(collection)
+                fields = get_known_fields(collection=collection)
                 print(fields)
             elif choice == "4":
                 is_admin = current_user.get("is_admin", False)
@@ -96,15 +100,24 @@ def main() -> None:
                     print("Only admin can delete documents.")
                     continue
                 print("Delete filter:")
-                filtered = select_document_filter(collection)
+                filtered = select_document_filter(collection=collection)
                 if filtered is not None:
-                    delete_document(client, database_name, collection_name, filtered)
+                    delete_document(
+                        client=client,
+                        database_name=database_name,
+                        collection_name=collection_name,
+                        filtered=filtered
+                    )
             elif choice == "6":
                 is_admin = current_user.get("is_admin", False)
                 if not is_admin:
                     print("Only admin can drop collections.")
                     continue
-                drop_collection(client, database_name, collection_name)
+                drop_collection(
+                    client=client,
+                    database_name=database_name,
+                    collection_name=collection_name
+                )
                 print(list_collections(client, database_name))
                 collection_name = input("Create/select collection: ").strip()
                 if not collection_name:
@@ -119,7 +132,7 @@ def main() -> None:
                     collection_name=collection_name
                 )
             elif choice == "7":
-                filtered = select_document_filter(collection)
+                filtered = select_document_filter(collection=collection)
                 if filtered is None:
                     continue
                 print("Update fields:")
@@ -133,7 +146,7 @@ def main() -> None:
                 if not is_admin:
                     print("Only admin can get users list.")
                     continue
-                users = get_users(client, database_name)
+                users = get_users(client=client, database_name=database_name)
                 print(json.dumps(users, indent=2, ensure_ascii=False, default=str))
             elif choice == "9":
                 is_admin = current_user.get("is_admin", False)
@@ -150,7 +163,7 @@ def main() -> None:
                     print("Only admin can update users.")
                     continue
                 print("Update user:")
-                filter_query = update_user_filter(client, database_name)
+                filter_query = update_user_filter(client=client, database_name=database_name)
                 if filter_query is None:
                     continue
                 update_fields = create_user_update_from_input()
