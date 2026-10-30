@@ -28,7 +28,7 @@ from core.Input import (
 )
 from core.Login import ensure_first_user, login_user
 from core.Model import load_model
-from core.Users import add_user, delete_user, get_users
+from core.Users import add_user, delete_user, get_users, update_user
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -106,26 +106,89 @@ def main() -> None:
                         client=client,
                         database_name=database_name,
                         collection_name=collection_name,
-                        filtered=filtered
+                        filter_query=filtered
                     )
             elif choice == "6":
-                is_admin = current_user.get("is_admin", False)
                 if not is_admin:
                     print("Only admin can drop collections.")
                     continue
-                drop_collection(
+                if collection_name.casefold() == "users":
+                    print("Users collection cannot be dropped.")
+                    continue
+                confirm = input(
+                    f"Drop collection '{collection_name}'? (yes/no): "
+                    ).strip().lower()
+                if confirm != "yes":
+                    print("Drop cancelled.")
+                    continue
+                result = drop_collection(
+                    client=client,
+                    database_name=database_name,
+                    collection_name=collection_name,
+                    confirm=True
+                )
+                if not result["ok"]:
+                    print(f"Error: {result['error']}")
+                    continue
+                print(f"Collection '{collection_name}' dropped.")
+                print(list_collections(client, database_name))
+                collection_name = input(
+                    "Create/select collection: "
+                ).strip()
+                if not collection_name:
+                    print("Collection name cannot be empty.")
+                    return
+                if collection_name.casefold() == "users":
+                    print("Users collection cannot be selected here.")
+                    return
+                collection = get_collection(
                     client=client,
                     database_name=database_name,
                     collection_name=collection_name
                 )
+            elif choice == "6":
+                if not is_admin:
+                    print("Only admin can drop collections.")
+                    continue
+
+                if collection_name.casefold() == "users":
+                    print("Users collection cannot be dropped.")
+                    continue
+
+                confirm = input(
+                    f"Drop collection '{collection_name}'? (yes/no): "
+                ).strip().lower()
+
+                if confirm != "yes":
+                    print("Drop cancelled.")
+                    continue
+
+                result = drop_collection(
+                    client=client,
+                    database_name=database_name,
+                    collection_name=collection_name,
+                    confirm=True
+                )
+
+                if not result["ok"]:
+                    print(f"Error: {result['error']}")
+                    continue
+
+                print(f"Collection '{collection_name}' dropped.")
                 print(list_collections(client, database_name))
-                collection_name = input("Create/select collection: ").strip()
+
+                collection_name = input(
+                    "Create/select collection: "
+                ).strip()
+
                 if not collection_name:
-                    print("Collection name cannot be empty")
-                    continue
-                if collection_name == "users" and not is_admin:
-                    print("Only admin users can access users collection.")
-                    continue
+                    print("Collection name cannot be empty.")
+                    return
+
+                if collection_name.casefold() == "users":
+                    print("Users collection cannot be selected here.")
+                    return
+
                 collection = get_collection(
                     client=client,
                     database_name=database_name,

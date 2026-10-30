@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
 from fastapi import HTTPException
 
 def raise_for_error(out: dict) -> None:

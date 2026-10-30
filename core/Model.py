@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
 import os
 from llama_cpp import Llama
 from core.Config import LLM_MODEL
@@ -45,7 +48,7 @@ def create_mongo_query(
     raw_output = (output["choices"][0]["text"].strip())
     query = clean_ai_response(raw_output)
     try:
-        return validate_query(query, collection_name)
+        return validate_query(query, collection_name, known_fields)
 
     except ValueError as error:
         print(f"Invalid query: {error}")

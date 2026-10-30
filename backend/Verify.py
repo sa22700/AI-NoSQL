@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
 from fastapi import HTTPException
 from backend.HttpException import raise_for_error
 from core.ErrorLog import log_error

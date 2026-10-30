@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Pirkka Toivakka
+# SPDX-License-Identifier: Apache-2.0
+
 from fastapi import FastAPI, HTTPException
 from argon2 import PasswordHasher
 from backend.ModelBase import (
