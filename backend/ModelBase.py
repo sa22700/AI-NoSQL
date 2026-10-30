@@ -18,6 +18,7 @@ class QueryRequest(LoginRequest):
 
 class QueryResponse(BaseModel):
     result: list[dict[str, Any]]
+    generated_query: str | None = None
     ok: bool
     error: str | None = None
 

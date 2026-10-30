@@ -1,3 +1,4 @@
+import os
 import flet as ft
 from ui.State import AppState
 from ui.API import ApiClient
@@ -11,7 +12,7 @@ from views.DropView import show_delete_collection
 from views.UpdateView import show_update_document
 from views.UsersView import show_update_user
 
-API_BASE = "http://127.0.0.1:8000"
+API_BASE = os.getenv("API_BASE","http://127.0.0.1:8000")
 
 def main(page: ft.Page) -> None:
     page.title = "AI-NoSQL"

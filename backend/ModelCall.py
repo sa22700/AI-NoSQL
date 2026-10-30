@@ -66,6 +66,11 @@ def query_endpoint(request: QueryRequest) -> dict:
             username=request.username,
             password=request.password,
         )
+        if request.collection_name.strip().casefold() == "users":
+            raise HTTPException(
+                status_code=403,
+                detail="Querying users collection is forbidden"
+            )
         collection = get_collection(
             client=client,
             database_name=request.database_name,
@@ -86,6 +91,7 @@ def query_endpoint(request: QueryRequest) -> dict:
             }
             raise_for_error(out)
         out = execute_query(collection, mongo_query)
+        out["generated_query"] = mongo_query
         raise_for_error(out)
         return out
 
